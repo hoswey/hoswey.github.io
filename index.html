@@ -229,6 +229,179 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/04/24/Spring-Rabbitmq-bug排查/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="HongShuwei">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/04/24/Spring-Rabbitmq-bug排查/" itemprop="url">Spring - Rabbitmq bug排查</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-04-24T09:35:23+08:00">
+                2018-04-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/04/24/Spring-Rabbitmq-bug排查/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2018/04/24/Spring-Rabbitmq-bug排查/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>项目同时连接多个rabbitmq,使用spring-rabbit进行连接，版本号为1.4.6.RELEASE</p>
+<p>某天发现rabbitmq服务器日志错误日志出现大量</p>
+<blockquote>
+<p>Channel error on connection &lt;0.3019.46&gt; (1.1.1.1:41724 -&gt; 1.2.3.4:5672, vhost: ‘/‘, user: ‘xunhuan_prod’), channel 31: operation queue.declare caused a channel exception not_found: “no queue ‘wolfkill.groups.online.time.queue’ in vhost ‘/‘“</p>
+</blockquote>
+<h3 id="rabbitmq架构"><a href="#rabbitmq架构" class="headerlink" title="rabbitmq架构"></a>rabbitmq架构</h3><p>两个rabbitmq集群，使用不同的virtual host</p>
+<table>
+<thead>
+<tr>
+<th>集群</th>
+<th>Virtual Host</th>
+<th>Queue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>service_A</td>
+<td>A1, A2</td>
+</tr>
+<tr>
+<td>B</td>
+<td>/</td>
+<td>wolfkill.groups.online.time.queue</td>
+</tr>
+</tbody>
+</table>
+<h2 id="故障排查"><a href="#故障排查" class="headerlink" title="故障排查"></a>故障排查</h2><h3 id="检查spring-xml配置文件"><a href="#检查spring-xml配置文件" class="headerlink" title="检查spring xml配置文件"></a>检查spring xml配置文件</h3><ul>
+<li>两个rabbitmq配置都已经分开</li>
+<li>queue和exchange都全部加上了<a href="https://docs.spring.io/spring-amqp/reference/htmlsingle/#conditional-declaration" target="_blank" rel="noopener">declared-by</a></li>
+</ul>
+<h3 id="检查源代码"><a href="#检查源代码" class="headerlink" title="检查源代码"></a>检查源代码</h3><h4 id="SimpleMessageListenerContainer"><a href="#SimpleMessageListenerContainer" class="headerlink" title="SimpleMessageListenerContainer"></a>SimpleMessageListenerContainer</h4><p>初始化的时候判断当前RabbitAdmin的数量，假如不为空的话，就赋值给成员变量RabbitAdmin,看到这里时已经感觉有点不妥，这也太过随意了吧😮，该项目接入了两个mq,所以RabbitAdmin对应着有两个。<br><a href="https://github.com/spring-projects/spring-amqp/blob/f9586b5de7e852033a5ece2cb229f3cac740e053/spring-rabbit/src/main/java/org/springframework/amqp/rabbit/listener/SimpleMessageListenerContainer.java#L685" target="_blank" rel="noopener">源代码传送门</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">doStart</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">	<span class="keyword">super</span>.doStart();</span><br><span class="line">	<span class="keyword">if</span> (<span class="keyword">this</span>.rabbitAdmin == <span class="keyword">null</span> &amp;&amp; <span class="keyword">this</span>.getApplicationContext() != <span class="keyword">null</span>) &#123;</span><br><span class="line">	  <span class="comment">//初始化时会随机拿第一个RabbitAdmin设置为当前的变量以供后续使用，但当项目有多个RabbitAdmin时则可能设置错误</span></span><br><span class="line">		Map&lt;String, RabbitAdmin&gt; admins = <span class="keyword">this</span>.getApplicationContext().getBeansOfType(RabbitAdmin.class);</span><br><span class="line">		<span class="keyword">if</span> (!admins.isEmpty()) &#123;</span><br><span class="line">			<span class="keyword">this</span>.rabbitAdmin = admins.values().iterator().next();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<p>在doStart之后执行的代码，拿了不确定的RabbitAdmin继续declare Queue(调用Rabbitmq Broker api).<br><a href="https://github.com/spring-projects/spring-amqp/blob/f9586b5de7e852033a5ece2cb229f3cac740e053/spring-rabbit/src/main/java/org/springframework/amqp/rabbit/listener/SimpleMessageListenerContainer.java#L963" target="_blank" rel="noopener">源代码传送门</a></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">redeclareElementsIfNecessary</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		ApplicationContext applicationContext = <span class="keyword">this</span>.getApplicationContext();</span><br><span class="line">		<span class="keyword">if</span> (applicationContext != <span class="keyword">null</span>) &#123;</span><br><span class="line">			Set&lt;String&gt; queueNames = <span class="keyword">this</span>.getQueueNamesAsSet();</span><br><span class="line">			Map&lt;String, Queue&gt; queueBeans = applicationContext.getBeansOfType(Queue.class);</span><br><span class="line">			<span class="keyword">for</span> (Entry&lt;String, Queue&gt; entry : queueBeans.entrySet()) &#123;</span><br><span class="line">				Queue queue = entry.getValue();</span><br><span class="line">				<span class="comment">//rabbitAdmin.getQueueProperties会调用channel.queueDeclarePassive,所以这个时候会拿了错误的RabbitAdmin进行创建，所以该处是问题所在</span></span><br><span class="line">				<span class="keyword">if</span> (queueNames.contains(queue.getName()) &amp;&amp;</span><br><span class="line">						<span class="keyword">this</span>.rabbitAdmin.getQueueProperties(queue.getName()) == <span class="keyword">null</span>) &#123;</span><br><span class="line">					<span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">						logger.debug(<span class="string">"At least one queue is missing: "</span> + queue.getName()</span><br><span class="line">								+ <span class="string">"; redeclaring context exchanges, queues, bindings."</span>);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">this</span>.rabbitAdmin.initialize();</span><br><span class="line">					<span class="keyword">return</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="检查新版本代码"><a href="#检查新版本代码" class="headerlink" title="检查新版本代码"></a>检查新版本代码</h4><p><a href="https://github.com/spring-projects/spring-amqp/blob/233aa11cf9046fb8c2c3c5a373d09d9e645aa2b3/spring-rabbit/src/main/java/org/springframework/amqp/rabbit/listener/SimpleMessageListenerContainer.java#L801" target="_blank" rel="noopener">源代码传送门</a></p>
+<p>检查最新的版本1.7.3.RELEASE, 最新版本已经加了条件判断，当只有一个RabbitAdmin时才会设置。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">doStart</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (<span class="keyword">this</span>.rabbitAdmin == <span class="keyword">null</span> &amp;&amp; <span class="keyword">this</span>.getApplicationContext() != <span class="keyword">null</span>) &#123;</span><br><span class="line">		Map&lt;String, RabbitAdmin&gt; admins = <span class="keyword">this</span>.getApplicationContext().getBeansOfType(RabbitAdmin.class);</span><br><span class="line">		<span class="keyword">if</span> (admins.size() == <span class="number">1</span>) &#123;</span><br><span class="line">			<span class="keyword">this</span>.rabbitAdmin = admins.values().iterator().next();</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>所以该问题的原因是spring rabbitmq在项目同时存在多个RabbitAdmin时，误用了RabbitAdmin, RabbitAdmin就是分别对应着不同的Rabbitmq集群，在该场景下，用了RabbitAdmin A去创建原本应该创建在B上的Virtual Host为“/”的Queue”wolfkill.groups.online.time.queue”.</strong></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
+<li>该问题是spring-rabbitmq模块的bug,搞版本已经解决</li>
+<li>使用开源工具时，尽可能的使用最新的版本。</li>
+</ol>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/04/04/spring-data-mongo源码解析/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -769,7 +942,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
