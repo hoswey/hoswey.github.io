@@ -79,17 +79,17 @@
 
 
 
-<meta name="description" content="引言在互联网中，缓存遍布整个链路过程的每一个环节，从在浏览器输入www.google.com开始，dns有缓存，静态资源可能缓存在浏览器端，cdn上，服务器的代理服务器上（例如nginx),假如是动态数据接口api,那么这块数据可能缓存在服务器上，分布式缓存上，当万一到达数据库上，数据也可能缓存在数据库服务器上，例如innodb的buff, mongodb的内存，当服务端触发到到文件io时，也许这">
+<meta name="description" content="引言在看redis源码的过程中，看到了redis为了高效使用内存，内部维护了个Integer常量池，使得redis对于频繁出现的Integer,能够减少内存的使用，也减少了内存申请和释放的开销，所以把各种场景的常量池做次归纳。 各种常量池Java产量池JVM字符串常量池这个太多常见了，直接google即可 Integer常量池对于Intger常量池，可以看下面这个例子，a和b变量都是引用类型，但进">
 <meta property="og:type" content="article">
 <meta property="og:title" content="无处不在的常量池">
 <meta property="og:url" content="http://yoursite.com/2018/05/03/无处不在的常量池/index.html">
 <meta property="og:site_name" content="程序员">
-<meta property="og:description" content="引言在互联网中，缓存遍布整个链路过程的每一个环节，从在浏览器输入www.google.com开始，dns有缓存，静态资源可能缓存在浏览器端，cdn上，服务器的代理服务器上（例如nginx),假如是动态数据接口api,那么这块数据可能缓存在服务器上，分布式缓存上，当万一到达数据库上，数据也可能缓存在数据库服务器上，例如innodb的buff, mongodb的内存，当服务端触发到到文件io时，也许这">
+<meta property="og:description" content="引言在看redis源码的过程中，看到了redis为了高效使用内存，内部维护了个Integer常量池，使得redis对于频繁出现的Integer,能够减少内存的使用，也减少了内存申请和释放的开销，所以把各种场景的常量池做次归纳。 各种常量池Java产量池JVM字符串常量池这个太多常见了，直接google即可 Integer常量池对于Intger常量池，可以看下面这个例子，a和b变量都是引用类型，但进">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2018-05-03T06:05:04.345Z">
+<meta property="og:updated_time" content="2018-05-03T11:56:31.807Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="无处不在的常量池">
-<meta name="twitter:description" content="引言在互联网中，缓存遍布整个链路过程的每一个环节，从在浏览器输入www.google.com开始，dns有缓存，静态资源可能缓存在浏览器端，cdn上，服务器的代理服务器上（例如nginx),假如是动态数据接口api,那么这块数据可能缓存在服务器上，分布式缓存上，当万一到达数据库上，数据也可能缓存在数据库服务器上，例如innodb的buff, mongodb的内存，当服务端触发到到文件io时，也许这">
+<meta name="twitter:description" content="引言在看redis源码的过程中，看到了redis为了高效使用内存，内部维护了个Integer常量池，使得redis对于频繁出现的Integer,能够减少内存的使用，也减少了内存申请和释放的开销，所以把各种场景的常量池做次归纳。 各种常量池Java产量池JVM字符串常量池这个太多常见了，直接google即可 Integer常量池对于Intger常量池，可以看下面这个例子，a和b变量都是引用类型，但进">
 
 
 
@@ -310,9 +310,9 @@
       
 
       
-        <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>在互联网中，缓存遍布整个链路过程的每一个环节，从在浏览器输入<a href="http://www.google.com开始，dns有缓存，静态资源可能缓存在浏览器端，cdn上，服务器的代理服务器上（例如nginx),假如是动态数据接口api,那么这块数据可能缓存在服务器上，分布式缓存上，当万一到达数据库上，数据也可能缓存在数据库服务器上，例如innodb的buff" target="_blank" rel="noopener">www.google.com开始，dns有缓存，静态资源可能缓存在浏览器端，cdn上，服务器的代理服务器上（例如nginx),假如是动态数据接口api,那么这块数据可能缓存在服务器上，分布式缓存上，当万一到达数据库上，数据也可能缓存在数据库服务器上，例如innodb的buff</a>, mongodb的内存，当服务端触发到到文件io时，也许这个文件也正好缓存在内存中。</p>
-<p>缓存对于服务性能必不可少，但同样的无处不在的常量池也令人惊叹，常量池对于后端服务，能减少创建以及存储的开销。</p>
-<h1 id="各种常量池"><a href="#各种常量池" class="headerlink" title="各种常量池"></a>各种常量池</h1><h2 id="Java产量池"><a href="#Java产量池" class="headerlink" title="Java产量池"></a>Java产量池</h2><h3 id="JVM字符串常量池"><a href="#JVM字符串常量池" class="headerlink" title="JVM字符串常量池"></a>JVM字符串常量池</h3><h3 id="Integer常量池"><a href="#Integer常量池" class="headerlink" title="Integer常量池"></a>Integer常量池</h3><p>对于Intger常量池，可以看下面这个例子，a和b变量都是引用类型，但进行“==”判断是否是同个引用的时候返回有时会返回true,这个是什么原因呢？因为JVM内部自己维护了个常量池，a和b都是指向了相同的“常量”实例，所以”==”会返回true, 而cd的值超出了默认常量值的范围，所以“==”返回false.</p>
+        <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>在看redis源码的过程中，看到了redis为了高效使用内存，内部维护了个Integer常量池，使得redis对于频繁出现的Integer,能够减少内存的使用，也减少了内存申请和释放的开销，所以把各种场景的常量池做次归纳。</p>
+<h1 id="各种常量池"><a href="#各种常量池" class="headerlink" title="各种常量池"></a>各种常量池</h1><h2 id="Java产量池"><a href="#Java产量池" class="headerlink" title="Java产量池"></a>Java产量池</h2><h3 id="JVM字符串常量池"><a href="#JVM字符串常量池" class="headerlink" title="JVM字符串常量池"></a>JVM字符串常量池</h3><p>这个太多常见了，直接google即可</p>
+<h3 id="Integer常量池"><a href="#Integer常量池" class="headerlink" title="Integer常量池"></a>Integer常量池</h3><p>对于Intger常量池，可以看下面这个例子，a和b变量都是引用类型，但进行“==”判断是否是同个引用的时候返回有时会返回true,这个是什么原因呢？因为JVM内部自己维护了个常量池，a和b都是指向了相同的“常量”实例，所以”==”会返回true, 而cd的值超出了默认常量值的范围，所以“==”返回false.</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">  Integer a = <span class="number">1</span>;</span><br><span class="line">  Integer b = <span class="number">1</span>;</span><br><span class="line">  System.out.println(a == b); <span class="comment">//true</span></span><br><span class="line"></span><br><span class="line">  Integer c = <span class="number">128</span>;</span><br><span class="line">  Integer d = <span class="number">128</span>;</span><br><span class="line">  System.out.println(c == d); <span class="comment">//false，默认情况，假如修改了jvm参数设置常量池大小，那么该结果有可能为true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>那在jdk里面是如何使用到这个常量池的？<br><a href="http://grepcode.com/file/repository.grepcode.com/java/root/jdk/openjdk/8u40-b25/java/lang/Integer.java#829" target="_blank" rel="noopener">源码</a>,从Integer.valueOf()方法中可以看出这里是使用了cache,也就是Integer常量值，对于 Integer a = 1这种statement, jvm其实也就是调用了valueOf方法进行boxing. IntegerCache.high是可以通过设置jvm参数进行改变。</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Integer <span class="title">valueOf</span><span class="params">(<span class="keyword">int</span> i)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (i &gt;= IntegerCache.low &amp;&amp; i &lt;= IntegerCache.high)</span><br><span class="line">        <span class="keyword">return</span> IntegerCache.cache[i + (-IntegerCache.low)];</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Integer(i);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
