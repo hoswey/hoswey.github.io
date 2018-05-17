@@ -80,12 +80,12 @@
 
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="程序员">
+<meta property="og:title" content="程序员，川流不息">
 <meta property="og:url" content="http://yoursite.com/index.html">
-<meta property="og:site_name" content="程序员">
+<meta property="og:site_name" content="程序员，川流不息">
 <meta property="og:locale" content="zh-Hans">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="程序员">
+<meta name="twitter:title" content="程序员，川流不息">
 
 
 
@@ -121,7 +121,7 @@
 
 
 
-  <title>程序员</title>
+  <title>程序员，川流不息</title>
   
 
 
@@ -152,7 +152,7 @@
     <div class="custom-logo-site-title">
       <a href="/"  class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">程序员</span>
+        <span class="site-title">程序员，川流不息</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -229,6 +229,160 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/05/17/Tcp-从jedis看常用的tcp参数/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="HongShuwei">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="程序员，川流不息">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/05/17/Tcp-从jedis看常用的tcp参数/" itemprop="url">Tcp - 从jedis看常用的tcp参数</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-05-17T09:19:35+08:00">
+                2018-05-17
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/05/17/Tcp-从jedis看常用的tcp参数/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2018/05/17/Tcp-从jedis看常用的tcp参数/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>由于微服务的兴起，以及公司内部各种服务间的各种调用，最近也遇过几次线上大量TIME_WAIT的问题，虽然知道怎么解决，但也点燃了我对tcp协议重新温习学习的兴趣。</p>
+<p>从何学习呢？重新看下几百多页的《TCP/IP详解》，那太花时间了，以前页看过一次。不如从一些优秀的开源项目里，看下他们是怎么使用tcp建立连接的？那就从jedis开始吧。😃</p>
+<h2 id="源码分析步骤"><a href="#源码分析步骤" class="headerlink" title="源码分析步骤"></a>源码分析步骤</h2><h3 id="下载源代码"><a href="#下载源代码" class="headerlink" title="下载源代码"></a>下载源代码</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/xetorthio/jedis.git</span><br><span class="line">git checkout tags/jedis-2.9.0</span><br></pre></td></tr></table></figure>
+<h3 id="分析"><a href="#分析" class="headerlink" title="分析"></a>分析</h3><p>从最简单的jedis.set追到底层的tcp网络编程吧</p>
+<h4 id="时序图"><a href="#时序图" class="headerlink" title="时序图"></a>时序图</h4><img src="http://www.plantuml.com/plantuml/svg/XSzD2i8m40NWVKwHPGiLNBiGf6xymOLwWP0yDDZEX6IgU7jjQnK5TPNXvPkP99WetlfWIFGIpYUbkaEFfhgiF4WcEa5KNtSf4y6APsflo9LSruQSUkMVolQrKZR22FIExQaT-TRGXzsoBPg4cNCHAMKI6-JVxGe8iygVyG_kRTZm79Mv_fCxNdiw87Qk67-JZrzbX8jUKDlMviEpZvoaq86ZvCL0xmFslWOtydFxmsI9d_e6">
+<h4 id="核心tcp参数设置"><a href="#核心tcp参数设置" class="headerlink" title="核心tcp参数设置"></a>核心tcp参数设置</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">socket.setReuseAddress(<span class="keyword">true</span>);</span><br><span class="line">socket.setKeepAlive(<span class="keyword">true</span>); <span class="comment">// Will monitor the TCP connection is</span></span><br><span class="line"><span class="comment">// valid</span></span><br><span class="line">socket.setTcpNoDelay(<span class="keyword">true</span>); <span class="comment">// Socket buffer Whetherclosed, to</span></span><br><span class="line"><span class="comment">// ensure timely delivery of data</span></span><br><span class="line">socket.setSoLinger(<span class="keyword">true</span>, <span class="number">0</span>); <span class="comment">// Control calls close () method</span></span><br><span class="line">socket.setSoTimeout(soTimeout);</span><br></pre></td></tr></table></figure>
+<h5 id="1-setReuseAddress"><a href="#1-setReuseAddress" class="headerlink" title="1 setReuseAddress"></a>1 setReuseAddress</h5><p>可以看出setReuseAddress本质上就是对SO_REUSEADDR的设置</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setReuseAddress</span><span class="params">(<span class="keyword">boolean</span> on)</span> <span class="keyword">throws</span> SocketException </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (isClosed())</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> SocketException(<span class="string">"Socket is closed"</span>);</span><br><span class="line">    getImpl().setOption(SocketOptions.SO_REUSEADDR, Boolean.valueOf(on));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>SO_REUSEADDR</strong>主要的作用(<a href="https://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t?answertab=active#tab-top" target="_blank" rel="noopener">其它作用</a>)就是对TIME_WAIT连接的重用，对于jedis,作者应该是希望客户端重启后，重新创建到redis服务器的tcp连接能够重用之前的接口。因为客户端重启时，活跃的jedis连接由于时客户端主动关闭，会持续2*MSL的TIME_WAIT状态，在此期间会一直占用着客户端端口。<br>MSL的大小可通过以下命令查看</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sysctl -a | grep tcp_fin_timeout</span><br><span class="line">tcp_fin_timeout = 60</span><br></pre></td></tr></table></figure>
+<h5 id="2-setKeepAlive"><a href="#2-setKeepAlive" class="headerlink" title="2 setKeepAlive"></a>2 setKeepAlive</h5><p><strong>SO_KEEPALIVE</strong>是tcp利用心跳机制保持连接的存活，假如连接已经断开，则会响应错误码Broken Pipe给上层应用,由于keepalive发起心跳包的开始实际比较迟，对于调整后的linux操作系统仍然需要5分钟，数值过小又会导致过多无用的包发出，5分钟的时间长度发出后，通常也会由于各种各样的原因连接早已被销毁，例如客户端服务器端的连接经过了lvs，haproxy各种各样的代理，代理服务器本身也会有个keepalive的最长时间。<br>一般业务对于SO_KEEPALIVE的依赖比较小，假如需要保持连接的话，会自己进行一些存活性的维持和判断，例如</p>
+<ol>
+<li>定期小周期发送心跳包keep alive</li>
+<li>在使用连接前进行判断，例如连接池通常采用的testOnBorrow, testOnReturn之类的机制。</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo sysctl -a | grep tcp_keepalive   </span><br><span class="line">net.ipv4.tcp_keepalive_intvl = 75</span><br><span class="line">net.ipv4.tcp_keepalive_probes = 9</span><br><span class="line">net.ipv4.tcp_keepalive_time = 300 //通常默认值为7200</span><br></pre></td></tr></table></figure>
+<h5 id="3-setTcpNoDelay"><a href="#3-setTcpNoDelay" class="headerlink" title="3 setTcpNoDelay"></a>3 setTcpNoDelay</h5><p>TCP_NODELAY的作用就是禁用Nagle，减少由于小包带来的推迟发送的延迟</p>
+<blockquote>
+<p>If set, disable the Nagle algorithm.  This means that segments are always sent  as  soon  as  possible,<br>even  if  there is only a small amount of data.  When not set, data is buffered until there is a suffi‐<br>cient amount to send out, thereby avoiding the frequent sending of small packets, which results in poor<br>utilization of the network.  This option is overridden by TCP_CORK; however, setting this option forces<br>an explicit flush of pending output, even if TCP_CORK is currently set.</p>
+</blockquote>
+<h5 id="4-setSoLinger-true-0"><a href="#4-setSoLinger-true-0" class="headerlink" title="4 setSoLinger(true, 0)"></a>4 setSoLinger(true, 0)</h5><p>这个选项的设置就是jedis关闭的时候直接发送RST,而不是按照正常的4次挥手的关闭流程，避免了客户端TIME_WAIT的情况，但不是一个很好的pratice,因为服务端会只会收到RST,这里留下一个问题，redis是如何处理rst的，是否是直接忽略，不然就会堆积很多错误日志？</p>
+<h5 id="5-socket-setSoTimeout-soTimeout"><a href="#5-socket-setSoTimeout-soTimeout" class="headerlink" title="5 socket.setSoTimeout(soTimeout)"></a>5 socket.setSoTimeout(soTimeout)</h5><p>SO_TIMEOUT的作用就是设置以下三个socket操作的超时时间，很明显，ServerSocket.accept()是针对服务端而言，DatagramSocket.receive()是针对UDP,在这里jedis生效的是SocketInputStream.read()，作用就是jedis发送命令后，开始读redis请求的响应时间。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">ServerSocket.accept();</span><br><span class="line">SocketInputStream.read();</span><br><span class="line">DatagramSocket.receive();</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>tcp是一个非常复杂的网络协议，但对于“客户端”的tcp编程其实也不是特别难，从jedis在tcp的使用上看，直接用了blocking io,同时设置了5个参数，就满足了大部分场合的使用，对于一般互联网的服务，也只是使用多一个池化JedisPool而已。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/05/03/无处不在的常量池/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -238,7 +392,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="程序员">
+      <meta itemprop="name" content="程序员，川流不息">
     </span>
 
     
@@ -380,7 +534,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="程序员">
+      <meta itemprop="name" content="程序员，川流不息">
     </span>
 
     
@@ -553,7 +707,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="程序员">
+      <meta itemprop="name" content="程序员，川流不息">
     </span>
 
     
@@ -761,7 +915,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="程序员">
+      <meta itemprop="name" content="程序员，川流不息">
     </span>
 
     
@@ -930,7 +1084,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="程序员">
+      <meta itemprop="name" content="程序员，川流不息">
     </span>
 
     
@@ -1084,7 +1238,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
