@@ -94,7 +94,7 @@
 <meta property="og:description" content="背景线上希望通过接入提高B国家用户的访问体验，所以在B国家新增了一个谷歌云服务的接入点  在测试中发现，转发的延迟达到了680ms,远远的超过了134ms（假如连接不复用情况下，那么2rtt也只是268ms）,经过排查，发现响应体约90K,tcp响应得分开90多个包传输，由于tcp各种问题，所以总时间拖长了（后续再总结） 但是  A国家数据中心请求 是能够正常 压缩，相同的数据压缩后只有8KB B">
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://drive.google.com/uc?export=view&id=1891GT0ZRxuzsQzsXlpZTrZ6lCwaOWhLC">
-<meta property="og:updated_time" content="2019-07-11T02:03:21.622Z">
+<meta property="og:updated_time" content="2019-07-11T02:48:59.114Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="浅谈web中的gzip压缩">
 <meta name="twitter:description" content="背景线上希望通过接入提高B国家用户的访问体验，所以在B国家新增了一个谷歌云服务的接入点  在测试中发现，转发的延迟达到了680ms,远远的超过了134ms（假如连接不复用情况下，那么2rtt也只是268ms）,经过排查，发现响应体约90K,tcp响应得分开90多个包传输，由于tcp各种问题，所以总时间拖长了（后续再总结） 但是  A国家数据中心请求 是能够正常 压缩，相同的数据压缩后只有8KB B">
@@ -370,7 +370,7 @@
 <li>对于某些内容，得基于未压缩的文件进行处理，例如视频的播放或者断点下载，客户端发起<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Range_requests#%E5%8D%95%E4%B8%80%E8%8C%83%E5%9B%B4" target="_blank" rel="noopener">range</a>请求，服务端依然得基于未压缩的内容进行处理。</li>
 </ol>
 <p>所以Nginx对于有via头的，默认则不压缩是合理的</p>
-<p>对于该情况，由于对外的都是api接口，不存在cache的情况，所有添加以下配置就解决</p>
+<p>对于该情况，由于对外的都是api接口，不存在cache的情况，所以添加以下配置就解决了</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gzip_proxied: any</span><br></pre></td></tr></table></figure>
 <p>web到处充斥着压缩，那么nginx是怎么判断什么时候需要处理的？tomcat呢？ 各个工具间是怎么保证不产生冲突的。</p>
 <h2 id="先总结"><a href="#先总结" class="headerlink" title="先总结"></a>先总结</h2><p>web到处充斥着压缩，那么nginx是怎么判断什么时候需要处理的？tomcat呢？ 各个工具间是怎么保证不产生冲突的。</p>
