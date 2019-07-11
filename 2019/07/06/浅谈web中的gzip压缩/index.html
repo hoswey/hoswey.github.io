@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2" rel="stylesheet">
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="背景线上希望通过接入提高B国家用户的访问体验，所以在B国家新增了一个谷歌云服务的接入点  在测试中发现，转发的延迟达到了680ms,远远的超过了134ms（假如连接不复用情况下，那么2rtt也只是268ms）,经过排查，发现响应体约90K,tcp响应得分开90多个包传输，所以总时间拖长了 但是  A国家数据中心请求 是能够正常 压缩，相同的数据压缩后只有8KB B国家数据中心请求 压缩异常  问题">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈web中的gzip压缩">
+<meta property="og:url" content="http://yoursite.com/2019/07/06/浅谈web中的gzip压缩/index.html">
+<meta property="og:site_name" content="程序员，川流不息">
+<meta property="og:description" content="背景线上希望通过接入提高B国家用户的访问体验，所以在B国家新增了一个谷歌云服务的接入点  在测试中发现，转发的延迟达到了680ms,远远的超过了134ms（假如连接不复用情况下，那么2rtt也只是268ms）,经过排查，发现响应体约90K,tcp响应得分开90多个包传输，所以总时间拖长了 但是  A国家数据中心请求 是能够正常 压缩，相同的数据压缩后只有8KB B国家数据中心请求 压缩异常  问题">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="https://drive.google.com/uc?export=view&id=1891GT0ZRxuzsQzsXlpZTrZ6lCwaOWhLC">
+<meta property="og:updated_time" content="2019-07-11T01:58:50.339Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="浅谈web中的gzip压缩">
+<meta name="twitter:description" content="背景线上希望通过接入提高B国家用户的访问体验，所以在B国家新增了一个谷歌云服务的接入点  在测试中发现，转发的延迟达到了680ms,远远的超过了134ms（假如连接不复用情况下，那么2rtt也只是268ms）,经过排查，发现响应体约90K,tcp响应得分开90多个包传输，所以总时间拖长了 但是  A国家数据中心请求 是能够正常 压缩，相同的数据压缩后只有8KB B国家数据中心请求 压缩异常  问题">
+<meta name="twitter:image" content="https://drive.google.com/uc?export=view&id=1891GT0ZRxuzsQzsXlpZTrZ6lCwaOWhLC">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":true,"scrollpercent":true,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2019/07/06/浅谈web中的gzip压缩/"/>
+
+
+
+
+
+  <title>浅谈web中的gzip压缩 | 程序员，川流不息</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">程序员，川流不息</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/07/06/浅谈web中的gzip压缩/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="HongShuwei">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="http://static.qqdaxia.com/rimg/hs/240_240_/t013e4fa6f38b1cece5.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="程序员，川流不息">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">浅谈web中的gzip压缩</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-06T10:27:22+08:00">
+                2019-07-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/07/06/浅谈web中的gzip压缩/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count"
+                        data-disqus-identifier="2019/07/06/浅谈web中的gzip压缩/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>线上希望通过接入提高B国家用户的访问体验，所以在B国家新增了一个谷歌云服务的接入点</p>
+<p><img src="https://drive.google.com/uc?export=view&amp;id=1891GT0ZRxuzsQzsXlpZTrZ6lCwaOWhLC" alt="翻墙中"></p>
+<p>在测试中发现，转发的延迟达到了680ms,远远的超过了134ms（假如连接不复用情况下，那么2rtt也只是268ms）,经过排查，发现响应体约90K,tcp响应得分开90多个包传输，所以总时间拖长了</p>
+<p><strong>但是</strong></p>
+<ul>
+<li>A国家数据中心请求 是能够正常 压缩，相同的数据压缩后只有8KB</li>
+<li>B国家数据中心请求 压缩异常</li>
+</ul>
+<h2 id="问题排查"><a href="#问题排查" class="headerlink" title="问题排查"></a>问题排查</h2><p>排查Nginx</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">gzip             on;</span><br><span class="line">gzip_comp_level  6;</span><br><span class="line">gzip_min_length  1k;</span><br><span class="line">gzip_buffers     4 8k;</span><br><span class="line">gzip_disable     &quot;MSIE [1-6]\.(?!.*SV1)&quot;;</span><br><span class="line">gzip_types       text/plain application/x-javascript text/css application/xml text/javascript application/javascript application/json;</span><br></pre></td></tr></table></figure>
+<p>通过抓包对比两个数据中心的请求</p>
+<p>发现谷歌SLB会在代理的请求增加以下Header标明是http的</p>
+<blockquote>
+<p>Via: 1.1 google</p>
+</blockquote>
+<p>通过查阅nginx配置</p>
+<p><a href="http://nginx.org/en/docs/http/ngx_http_gzip_module.html#gzip_proxied" target="_blank" rel="noopener">gzip_proxied</a>发现nginx默认是不会对于来自代理服务器的请求就行压缩的，原因可参考<a href="https://stackoverflow.com/questions/33375304/what-are-the-options-for-the-gzip-proxied-directive-for" target="_blank" rel="noopener">what are the options for the gzip proxied for</a>,简而言之</p>
+<ol>
+<li>客户端支持的压缩协议不同，假如把响应gzip放在代理服务器上，代理服务器还是得解压了再按客户端支持的协议重新下发，或者客户端不支持或者不期望压缩。</li>
+<li>对于某些内容，得基于未压缩的文件进行处理，例如视频的播放或者断点下载，客户端发起<a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Range_requests#%E5%8D%95%E4%B8%80%E8%8C%83%E5%9B%B4" target="_blank" rel="noopener">range</a>请求，服务端依然得基于未压缩的内容进行处理。</li>
+</ol>
+<p>所以Nginx对于有via头的，默认则不压缩是合理的</p>
+<p>对于该情况，由于对外的都是api接口，不存在cache的情况，所有添加以下配置就解决</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gzip_proxied: any</span><br></pre></td></tr></table></figure>
+<p>web到处充斥着压缩，那么nginx是怎么判断什么时候需要处理的？tomcat呢？ 各个工具间是怎么保证不产生冲突的。</p>
+<h3 id="先总结"><a href="#先总结" class="headerlink" title="先总结"></a>先总结</h3><p>web到处充斥着压缩，那么nginx是怎么判断什么时候需要处理的？tomcat呢？ 各个工具间是怎么保证不产生冲突的。</p>
+<ol>
+<li>nginx提供了一系列的gip_前缀的配置控制是否压缩，tomcat由于角色是web容器，所以提供的选项只有3个，连compress level都不提供。 </li>
+<li>在配置启用压缩的前提下， 还会检查 <a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Content-Encoding" target="_blank" rel="noopener">Content-Encoding</a>是否存在gzip值，对于nginx会更加的详细，会判断多额外的边界条件，例如gzip, q=0也禁用。 从这点上看，nginx+tomcat的这种主流架构，尽管同时启用了gzip,都不会产生冲突。</li>
+</ol>
+<h3 id="nginx源码"><a href="#nginx源码" class="headerlink" title="nginx源码"></a>nginx源码</h3><h4 id="ngx-http-gzip-filter-module-c"><a href="#ngx-http-gzip-filter-module-c" class="headerlink" title="ngx_http_gzip_filter_module.c"></a>ngx_http_gzip_filter_module.c</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">ngx_int_t</span></span><br><span class="line">ngx_http_gzip_header_filter(<span class="keyword">ngx_http_request_t</span> *r)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">ngx_table_elt_t</span>       *h;</span><br><span class="line">    <span class="keyword">ngx_http_gzip_ctx_t</span>   *ctx;</span><br><span class="line">    <span class="keyword">ngx_http_gzip_conf_t</span>  *conf;</span><br><span class="line"></span><br><span class="line">    conf = ngx_http_get_module_loc_conf(r, ngx_http_gzip_filter_module);</span><br><span class="line"></span><br><span class="line">	 <span class="comment">// 以下是不进行zip的条件</span></span><br><span class="line">	 <span class="comment">// 没配置gzip: one</span></span><br><span class="line">    <span class="keyword">if</span> (!conf-&gt;enable</span><br><span class="line">        <span class="comment">//gzip 状态错误</span></span><br><span class="line">        || (r-&gt;headers_out.status != NGX_HTTP_OK</span><br><span class="line">            &amp;&amp; r-&gt;headers_out.status != NGX_HTTP_FORBIDDEN</span><br><span class="line">            &amp;&amp; r-&gt;headers_out.status != NGX_HTTP_NOT_FOUND)</span><br><span class="line">        <span class="comment">// Content-Encoding header不为空，</span></span><br><span class="line">        || (r-&gt;headers_out.content_encoding</span><br><span class="line">            &amp;&amp; r-&gt;headers_out.content_encoding-&gt;value.len)</span><br><span class="line">        <span class="comment">//响应体的大小小于设置的的最小长度 gzip_min_length</span></span><br><span class="line">        || (r-&gt;headers_out.content_length_n != <span class="number">-1</span></span><br><span class="line">            &amp;&amp; r-&gt;headers_out.content_length_n &lt; conf-&gt;min_length)</span><br><span class="line">        <span class="comment">//Content-Type不在配置gzip_types范围内</span></span><br><span class="line">        || ngx_http_test_content_type(r, &amp;conf-&gt;types) == <span class="literal">NULL</span></span><br><span class="line">        <span class="comment">//没响应体</span></span><br><span class="line">        || r-&gt;header_only)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> ngx_http_next_header_filter(r);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    r-&gt;gzip_vary = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!r-&gt;gzip_tested) &#123;</span><br><span class="line">    	  <span class="comment">//下面说明</span></span><br><span class="line">        <span class="keyword">if</span> (ngx_http_gzip_ok(r) != NGX_OK) &#123;</span><br><span class="line">            <span class="keyword">return</span> ngx_http_next_header_filter(r);</span><br><span class="line">        &#125;</span><br><span class="line">    <span class="comment">//当gzip_tested为true时表示已经判断过是否支持gzip, gzip_ok则为判断的结果</span></span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (!r-&gt;gzip_ok) &#123;</span><br><span class="line">        <span class="keyword">return</span> ngx_http_next_header_filter(r);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="ngx-http-core-module"><a href="#ngx-http-core-module" class="headerlink" title="ngx_http_core_module"></a>ngx_http_core_module</h4><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">ngx_int_t</span></span><br><span class="line">ngx_http_gzip_ok(<span class="keyword">ngx_http_request_t</span> *r)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">time_t</span>                     date, expires;</span><br><span class="line">    <span class="keyword">ngx_uint_t</span>                 p;</span><br><span class="line">    <span class="keyword">ngx_array_t</span>               *cc;</span><br><span class="line">    <span class="keyword">ngx_table_elt_t</span>           *e, *d, *ae;</span><br><span class="line">    <span class="keyword">ngx_http_core_loc_conf_t</span>  *clcf;</span><br><span class="line"></span><br><span class="line">    r-&gt;gzip_tested = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">	 <span class="comment">//是否是nginx子请求，可参考nginx batch api</span></span><br><span class="line">    <span class="keyword">if</span> (r != r-&gt;main) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//客户端没传 Accept-Encoding</span></span><br><span class="line">    ae = r-&gt;headers_in.accept_encoding;</span><br><span class="line">    <span class="keyword">if</span> (ae == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (ae-&gt;value.len &lt; <span class="keyword">sizeof</span>(<span class="string">"gzip"</span>) - <span class="number">1</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * test first for the most common case "gzip,...":</span></span><br><span class="line"><span class="comment">     *   MSIE:    "gzip, deflate"</span></span><br><span class="line"><span class="comment">     *   Firefox: "gzip,deflate"</span></span><br><span class="line"><span class="comment">     *   Chrome:  "gzip,deflate,sdch"</span></span><br><span class="line"><span class="comment">     *   Safari:  "gzip, deflate"</span></span><br><span class="line"><span class="comment">     *   Opera:   "gzip, deflate"</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">	 <span class="comment">//Accept-Encoding 不包含合法gzip</span></span><br><span class="line">    <span class="keyword">if</span> (ngx_memcmp(ae-&gt;value.data, <span class="string">"gzip,"</span>, <span class="number">5</span>) != <span class="number">0</span></span><br><span class="line">        &amp;&amp; ngx_http_gzip_accept_encoding(&amp;ae-&gt;value) != NGX_OK)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);</span><br><span class="line"></span><br><span class="line">	 <span class="comment">//是否旧的不兼容的UA</span></span><br><span class="line">    <span class="keyword">if</span> (r-&gt;headers_in.msie6 &amp;&amp; clcf-&gt;gzip_disable_msie6) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (r-&gt;http_version &lt; clcf-&gt;gzip_http_version) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (r-&gt;headers_in.via == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">goto</span> ok;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    p = clcf-&gt;gzip_proxied;</span><br><span class="line"></span><br><span class="line">	 <span class="comment">//gzip_proxied: off //默认情况</span></span><br><span class="line">    <span class="keyword">if</span> (p &amp; NGX_HTTP_GZIP_PROXIED_OFF) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	 <span class="comment">//gzip_proxied: any</span></span><br><span class="line">    <span class="keyword">if</span> (p &amp; NGX_HTTP_GZIP_PROXIED_ANY) &#123;</span><br><span class="line">        <span class="keyword">goto</span> ok;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	 <span class="comment">//gzip_proxied: auth</span></span><br><span class="line">    <span class="keyword">if</span> (r-&gt;headers_in.authorization &amp;&amp; (p &amp; NGX_HTTP_GZIP_PROXIED_AUTH)) &#123;</span><br><span class="line">        <span class="keyword">goto</span> ok;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    e = r-&gt;headers_out.expires;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (e) &#123;</span><br><span class="line"></span><br><span class="line">		 <span class="comment">//对应 enables compression if a response header includes the “Expires” field with a value that disables caching;</span></span><br><span class="line">        <span class="keyword">if</span> (!(p &amp; NGX_HTTP_GZIP_PROXIED_EXPIRED)) &#123;</span><br><span class="line">            <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        expires = ngx_parse_http_time(e-&gt;value.data, e-&gt;value.len);</span><br><span class="line">        <span class="keyword">if</span> (expires == NGX_ERROR) &#123;</span><br><span class="line">            <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        d = r-&gt;headers_out.date;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (d) &#123;</span><br><span class="line">            date = ngx_parse_http_time(d-&gt;value.data, d-&gt;value.len);</span><br><span class="line">            <span class="keyword">if</span> (date == NGX_ERROR) &#123;</span><br><span class="line">                <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            date = ngx_time();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (expires &lt; date) &#123;</span><br><span class="line">            <span class="keyword">goto</span> ok;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    cc = &amp;r-&gt;headers_out.cache_control;</span><br><span class="line"></span><br><span class="line">	 <span class="comment">//gzip_proxied: no-cache/no-store/private等各种情况</span></span><br><span class="line">    <span class="keyword">if</span> (cc-&gt;elts) &#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ((p &amp; NGX_HTTP_GZIP_PROXIED_NO_CACHE)</span><br><span class="line">            &amp;&amp; ngx_http_parse_multi_header_lines(cc, &amp;ngx_http_gzip_no_cache,</span><br><span class="line">                                                 <span class="literal">NULL</span>)</span><br><span class="line">               &gt;= <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">goto</span> ok;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ((p &amp; NGX_HTTP_GZIP_PROXIED_NO_STORE)</span><br><span class="line">            &amp;&amp; ngx_http_parse_multi_header_lines(cc, &amp;ngx_http_gzip_no_store,</span><br><span class="line">                                                 <span class="literal">NULL</span>)</span><br><span class="line">               &gt;= <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">goto</span> ok;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ((p &amp; NGX_HTTP_GZIP_PROXIED_PRIVATE)</span><br><span class="line">            &amp;&amp; ngx_http_parse_multi_header_lines(cc, &amp;ngx_http_gzip_private,</span><br><span class="line">                                                 <span class="literal">NULL</span>)</span><br><span class="line">               &gt;= <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">goto</span> ok;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	 <span class="comment">//no_last_modified</span></span><br><span class="line">    <span class="keyword">if</span> ((p &amp; NGX_HTTP_GZIP_PROXIED_NO_LM) &amp;&amp; r-&gt;headers_out.last_modified) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"> 	 <span class="comment">//no_etag</span></span><br><span class="line">    <span class="keyword">if</span> ((p &amp; NGX_HTTP_GZIP_PROXIED_NO_ETAG) &amp;&amp; r-&gt;headers_out.etag) &#123;</span><br><span class="line">        <span class="keyword">return</span> NGX_DECLINED;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">ok:</span><br><span class="line"></span><br><span class="line">    r-&gt;gzip_ok = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> NGX_OK;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Tomcat源码"><a href="#Tomcat源码" class="headerlink" title="Tomcat源码"></a>Tomcat源码</h3><h5 id="tomcat针对压缩，可配置的选项相对较少"><a href="#tomcat针对压缩，可配置的选项相对较少" class="headerlink" title="tomcat针对压缩，可配置的选项相对较少"></a>tomcat针对压缩，<a href="https://tomcat.apache.org/tomcat-8.5-doc/config/http.html" target="_blank" rel="noopener">可配置的选项</a>相对较少</h5><ul>
+<li>compressibleMimeType</li>
+<li>compression</li>
+<li>compressionMinSize<br>基本就是允许什么content-type的进行压缩，启用压缩的大小是多少</li>
+</ul>
+<h4 id="org-apache-coyote-http11-Http11Processor"><a href="#org-apache-coyote-http11-Http11Processor" class="headerlink" title="org.apache.coyote.http11.Http11Processor"></a>org.apache.coyote.http11.Http11Processor</h4><p>以http1.1协议为例，主要逻辑为,以下只说明压缩后会改变了什么http的头部</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (useCompression) &#123;</span><br><span class="line">    outputBuffer.addActiveFilter(outputFilters[Constants.GZIP_FILTER]);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">//设置了Content-Encoding</span></span><br><span class="line">    headers.setValue(<span class="string">"Content-Encoding"</span>).setString(<span class="string">"gzip"</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// If it might be compressed, set the Vary header</span></span><br><span class="line"><span class="keyword">if</span> (isCompressible) &#123;</span><br><span class="line">    <span class="comment">// Make Proxies happy via Vary (from mod_deflate)</span></span><br><span class="line">    MessageBytes vary = headers.getValue(<span class="string">"Vary"</span>);</span><br><span class="line">    <span class="keyword">if</span> (vary == <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">// Add a new Vary header</span></span><br><span class="line">        headers.setValue(<span class="string">"Vary"</span>).setString(<span class="string">"Accept-Encoding"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (vary.equals(<span class="string">"*"</span>)) &#123;</span><br><span class="line">        <span class="comment">// No action required</span></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// Merge into current header</span></span><br><span class="line">        headers.setValue(<span class="string">"Vary"</span>).setString(</span><br><span class="line">                vary.getString() + <span class="string">",Accept-Encoding"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/05/17/Tcp-从jedis看常用的tcp参数/" rel="next" title="Tcp - 从jedis看常用的tcp参数">
+                <i class="fa fa-chevron-left"></i> Tcp - 从jedis看常用的tcp参数
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="http://static.qqdaxia.com/rimg/hs/240_240_/t013e4fa6f38b1cece5.jpg"
+                alt="HongShuwei" />
+            
+              <p class="site-author-name" itemprop="name">HongShuwei</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:hongshuwei@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题排查"><span class="nav-number">2.</span> <span class="nav-text">问题排查</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#先总结"><span class="nav-number">2.1.</span> <span class="nav-text">先总结</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#nginx源码"><span class="nav-number">2.2.</span> <span class="nav-text">nginx源码</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ngx-http-gzip-filter-module-c"><span class="nav-number">2.2.1.</span> <span class="nav-text">ngx_http_gzip_filter_module.c</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#ngx-http-core-module"><span class="nav-number">2.2.2.</span> <span class="nav-text">ngx_http_core_module</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Tomcat源码"><span class="nav-number">2.3.</span> <span class="nav-text">Tomcat源码</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#tomcat针对压缩，可配置的选项相对较少"><span class="nav-number">2.3.0.1.</span> <span class="nav-text">tomcat针对压缩，可配置的选项相对较少</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#org-apache-coyote-http11-Http11Processor"><span class="nav-number">2.3.1.</span> <span class="nav-text">org.apache.coyote.http11.Http11Processor</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+            <span id="scrollpercent"><span>0</span>%</span>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">HongShuwei</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://hoswey.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2019/07/06/浅谈web中的gzip压缩/';
+          this.page.identifier = '2019/07/06/浅谈web中的gzip压缩/';
+          this.page.title = '浅谈web中的gzip压缩';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://hoswey.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
