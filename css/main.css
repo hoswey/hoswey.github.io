@@ -429,7 +429,7 @@ td {
 }
 th {
   padding-bottom: 10px;
-  font-weight: 700;
+  font-weight: 900;
 }
 td {
   border-bottom-width: 1px;
@@ -1845,7 +1845,7 @@ pre {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #ffffe7;
+  background: #61ffff;
 }
 .links-of-blogroll {
   font-size: 13px;
