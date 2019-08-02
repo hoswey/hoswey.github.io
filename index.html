@@ -266,6 +266,172 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/08/02/Tomcat对于http-keepalive的控制/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="HongShuwei">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="http://static.qqdaxia.com/rimg/hs/240_240_/t013e4fa6f38b1cece5.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="程序员，川流不息">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/08/02/Tomcat对于http-keepalive的控制/" itemprop="url">Tomcat对于http keepalive的控制</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-08-02T11:23:21+08:00">
+                2019-08-02
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/08/02/Tomcat对于http-keepalive的控制/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/08/02/Tomcat对于http-keepalive的控制/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>项目网关和进程之间采用的是http连接，进程转发有时会出现跨机房的情况，所以通过http keepalive保持长连接是减少延迟的关键，但现实并非完全的长连接。</p>
+<h2 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h2><p>网关和进程间的请求已经明确了http头非close, 由于http版本是1.1， 所以只要值不是”close”,那么明确的就是需要keepalive.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">connection:</span><br></pre></td></tr></table></figure>
+<p>但现象是，从连接状态上看，还是出现了TIME_WAIT的情况，10.77.1.24是源地址，10.77.1.60:12003是目标服务，TIME_WAIT,就是服务端主动关闭了连接</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo netstat -apn |  grep <span class="string">"10.77.1.60:12003"</span></span><br><span class="line">tcp        0      0 10.77.1.24:35720        10.77.1.60:12003        TIME_WAIT   -               </span><br><span class="line">tcp        0      0 10.77.1.24:37130        10.77.1.60:12003        ESTABLISHED 20750/java      </span><br><span class="line">tcp        0      0 10.77.1.24:39472        10.77.1.60:12003        ESTABLISHED 20750/java      </span><br><span class="line">tcp        0      0 10.77.1.24:40880        10.77.1.60:12003        ESTABLISHED 20750/java      </span><br><span class="line">tcp        0      0 10.77.1.24:40962        10.77.1.60:12003        ESTABLISHED 20750/java</span><br></pre></td></tr></table></figure>
+<h2 id="排查"><a href="#排查" class="headerlink" title="排查"></a>排查</h2><h3 id="通过tcpdump排查问题"><a href="#通过tcpdump排查问题" class="headerlink" title="通过tcpdump排查问题"></a>通过tcpdump排查问题</h3><p>通过在服务器上执行tcpdump, 抓包分析</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo tcpdump -i any host 10.77.1.60 and port 12003</span><br></pre></td></tr></table></figure>
+<img src="/2019/08/02/Tomcat对于http-keepalive的控制/ws1.jpg" title="example.jpg">
+<p>发现一个现象</p>
+<ol>
+<li>每个连接处理一段时间总会关闭，都是客户端也就是网关主动发起的关闭，从上图看，带了Fin标志的包从客户端发往服务端。</li>
+<li>连接持续的时间不等，有60s, 90s, 122s, 151s,都不一定是整数</li>
+</ol>
+<p>由于是客户端主动发起的关闭连接，那么排查方向主要从客户端入手，看下有无一些设置时长的判断的逻辑之类，浏览了相关源码，发现并无相关代码。</p>
+<p>所以考虑到，会否是服务端发起关闭的请求，客户端被动接受而已。所以看了FIN包的上一个http响应，发现tomcat服务器响应了<strong>“Connection: close”</strong>的header.</p>
+<img src="/2019/08/02/Tomcat对于http-keepalive的控制/ws2.jpg" title="example.jpg">
+<p>所以连接的重用是控制在tomcat端，通常控制http keepalive的方式有</p>
+<ol>
+<li>连接idle time.</li>
+<li>使用该连接请求的次数。</li>
+</ol>
+<p>很明显可以排除第一点，怀疑是第二点的原因。统计了几个有相同情况的情况，发现每个请求都是重用了100次，tomcat就响应了<strong>“Connection: close”</strong>.</p>
+<h3 id="分析tomcat"><a href="#分析tomcat" class="headerlink" title="分析tomcat"></a>分析tomcat</h3><p><a href="https://tomcat.apache.org/tomcat-8.5-doc/config/http.html#HTTP/2_Support" target="_blank" rel="noopener">Keepalive配置项</a></p>
+<p><strong>maxKeepAliveRequests</strong></p>
+<blockquote>
+<p>The maximum number of HTTP requests which can be pipelined until the connection is closed by the server. Setting this attribute to 1 will disable HTTP/1.0 keep-alive, as well as HTTP/1.1 keep-alive and pipelining. Setting this to -1 will allow an unlimited amount of pipelined or keep-alive HTTP requests. If not specified, this attribute is set to 100.</p>
+</blockquote>
+<p>checkout tomcat源码</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span>  https://github.com/apache/tomcat.git </span><br><span class="line">//checkout项目使用到的版本8.5.31</span><br><span class="line">git checkout 18fac60288</span><br></pre></td></tr></table></figure>
+<p>浏览处理http响应的代码，截取部分源码</p>
+<p>Http11Processor</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> SocketState <span class="title">service</span><span class="params">(SocketWrapperBase&lt;?&gt; socketWrapper)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (maxKeepAliveRequests == <span class="number">1</span>) &#123;</span><br><span class="line">	    keepAlive = <span class="keyword">false</span>;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (maxKeepAliveRequests &gt; <span class="number">0</span> &amp;&amp;</span><br><span class="line">	        socketWrapper.decrementKeepAlive() &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">	    keepAlive = <span class="keyword">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">prepareResponse</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> (!keepAlive) &#123;</span><br><span class="line">	    <span class="comment">// Avoid adding the close header twice</span></span><br><span class="line">	    <span class="keyword">if</span> (!connectionClosePresent) &#123;</span><br><span class="line">	        headers.addValue(Constants.CONNECTION).setString(</span><br><span class="line">	                Constants.CLOSE);</span><br><span class="line">	    &#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> (!http11 &amp;&amp; !getErrorState().isError()) &#123;</span><br><span class="line">	    headers.addValue(Constants.CONNECTION).setString(Constants.KEEPALIVE);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
+<li>tomcat作为服务端，通过maxKeepAliveRequests参数控制keepalive连接数的最大支持的数量，默认值为100.</li>
+<li>除了maxKeepAliveRequests这个参数，tomcat还提供keepAliveTimeout，控制连接空闲的时间，默认是20秒。</li>
+<li>这两个控制正对应着http1.1规范对于keepalive的定义。</li>
+</ol>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/07/23/浅谈Java中的TCP超时/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1485,7 +1651,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-count">8</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
