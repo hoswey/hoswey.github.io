@@ -96,7 +96,7 @@
 <meta property="og:image" content="http://www.plantuml.com/plantuml/svg/umhEJyvEBL7GjLE0iAmKalFpybAJIpHACdDJyqjBDBbGbHH3k9wv1JbmjLne4Y2rZad59KM9oIK1EOcPUTZqu52WW4zpCPZfJC04e04OjgBerCXBBCaiItqsRUUppLCr0G00">
 <meta property="og:image" content="http://www.plantuml.com/plantuml/svg/bO_12e9048Rl-nJJHUfGU9OI8lPWH0Xhvq6s4RR6NS4rwktJagWyb9TX6FxvFdwHScwiSlfCFYahNcY0UGo3QmJR_9BZgHkMF7u5i7wi6sSjQI-6q9R9nZPNrEngwdXxcM6VdtfJaciyB5SGpiH7iFjKjzfJYUiqYK2FLAIE-SMF8OGW05FO8nLmK1ALtCbD1Z-aLGlvswY8tplrpibewPCZxW00">
 <meta property="og:image" content="http://www.plantuml.com/plantuml/svg/TK_D2e904Bxt57CqgEYyXq38G30JrxjiwqHBkwxfR1JqyDaMz6UNOVZuVhcL1wIuRXnnQb4Oc2w0VuCC-bi5f0nQH-CH7rA5suvQ8IdJGjLFXcaq0o6FJhMuMWxhVi2PP90AKYU4DTBULj1vIjvtc0UxQWB_YypatLAhsfrBgMs7tYmgok8XUMtuuFWUbuxGb64MCsYirZufsoH9dCBLFr6UlsNV0000">
-<meta property="og:updated_time" content="2019-07-27T08:51:45.525Z">
+<meta property="og:updated_time" content="2020-04-08T12:00:59.117Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="浅谈Java中的TCP超时">
 <meta name="twitter:description" content="背景在远程调用的世界里，Timeout的情况非常常见，几乎每段时间就会听到几个同事关于Timeout各种情况的讨论，偶尔的会出现不同开发语言间的同事的讨论，例如read timeout, 语言的隔阂使得大家讨论的都不知道是否是同一回事。 对于Java，各种远程调用，http,hessian,dubbo什么的，抛个timeout异常也是常见的事情，timeout是什么，一般追追源码，追到最后发现是个">
@@ -393,7 +393,7 @@
 </code></pre>
 <h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
 <li>“connect timed out” 是在指定时间内TCP连接未创建成功时jdk抛出的异常</li>
-<li>“Read timed out”是在调用socketread后，指定时间内未收到响应时 jdk抛出的异常， 假如一个http响应10k, 每次socket read 4k, 那么就需要发起3次read的请求，假如timeout设置3秒，那么就允许每次read都等待3秒，最差的情况就是大概6秒读完数据，当然这得是极端的网络情况， 所以大部分情况下都是客户端发起请求后，在指定时间内收到的服务器的回包响应。</li>
+<li>“Read timed out”是在调用socketread后，指定时间内未收到响应时 jdk抛出的异常， 假如一个http响应10k, 每次socket read 4k, 那么就需要发起3次read的请求，假如timeout设置3秒，那么就允许每次read都等待3秒，最差的情况就是大概6秒读完数据，当然这得是极端的网络情况， 所以大部分情况下都是客户端发起请求后，在指定时间内收到的服务器的回包响应。<br>## </li>
 </ol>
 
       
@@ -520,7 +520,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-count">9</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -594,7 +594,7 @@
 
     <footer id="footer" class="footer">
       <div class="footer-inner">
-        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
   <span class="with-love">
     <i class="fa fa-user"></i>
   </span>
