@@ -93,7 +93,7 @@
 <meta property="og:site_name" content="程序员，川流不息">
 <meta property="og:description" content="背景这几天和盛哥聊到了系统调用的开销，有些是io,有些是内存，突然提到了尽管像获取时间这种调用，有些对性能要求极高的系统也会做针对性优化。连”获取时间“都要优化，nginx不就是这么处理么？为什么要这样处理?时间这个基础性的信息底层到底是怎样呢，而高级语言Java/C这些获取时间的方式又是怎么和底层交互的？这个问题激起了我极大的兴趣，希望能通过对“时间”的技术细节做层梳理和探索，加深对操作系统以及">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2020-09-02T06:14:09.995Z">
+<meta property="og:updated_time" content="2020-09-02T06:23:58.429Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Linux如何获取时间">
 <meta name="twitter:description" content="背景这几天和盛哥聊到了系统调用的开销，有些是io,有些是内存，突然提到了尽管像获取时间这种调用，有些对性能要求极高的系统也会做针对性优化。连”获取时间“都要优化，nginx不就是这么处理么？为什么要这样处理?时间这个基础性的信息底层到底是怎样呢，而高级语言Java/C这些获取时间的方式又是怎么和底层交互的？这个问题激起了我极大的兴趣，希望能通过对“时间”的技术细节做层梳理和探索，加深对操作系统以及">
@@ -366,7 +366,7 @@
 <figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">jlong os::javaTimeMillis() &#123;</span><br><span class="line">  timeval time;</span><br><span class="line">  <span class="keyword">int</span> status = gettimeofday(&amp;time, <span class="literal">NULL</span>);</span><br><span class="line">  assert(status != <span class="number">-1</span>, <span class="string">"linux error"</span>);</span><br><span class="line">  <span class="keyword">return</span> jlong(time.tv_sec) * <span class="number">1000</span>  +  jlong(time.tv_usec / <span class="number">1000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>好，继续往下一个问题</p>
 <h2 id="Linux是怎么维护和衡量时间"><a href="#Linux是怎么维护和衡量时间" class="headerlink" title="Linux是怎么维护和衡量时间"></a>Linux是怎么维护和衡量时间</h2><p>总的来说，现代操作系统主板上会有个<a href="https://en.wikipedia.org/wiki/Real-time_clock" target="_blank" rel="noopener">Real Time Clock</a>,记录着当前的时间，通过主板上的电池<a href="https://en.wikipedia.org/wiki/Nonvolatile_BIOS_memory#CMOS_battery" target="_blank" rel="noopener">CMOS Battery</a>维持,假如电池没电了,那我们启动后时间就会出现不正常的情况，通过api去获取时间当然的也会出现相应的问题问题。假如时间出现问题，可以通过手动或者自动的方式校准。  </p>
-<p>服务器启动的时候就会读取当前时间，保存到kernel，记T1<br>同时启动<a href="https://en.wikipedia.org/wiki/Time_Stamp_Counter" target="_blank" rel="noopener">TSC</a>,什么是TSC?简单来说就是一个64bit的寄存器，记录着服务器启动以来cpu的cycle,每个cycle的时间就是1/CPU频率，例如cpu 2HZ, 那么就表示一个cycle的时间是0.5ns<br>所以获取当前时间的方式就是</p>
+<p>服务器启动的时候就会读取当前时间，保存到kernel，记T1<br>同时启动<a href="https://en.wikipedia.org/wiki/Time_Stamp_Counter" target="_blank" rel="noopener">TSC</a>,什么是TSC?简单来说就是一个64bit的寄存器，记录着服务器启动以来cpu的cycle,每个cycle的时间就是1/CPU频率，例如cpu 2GHZ, 那么就表示一个cycle的时间是0.5ns<br>所以获取当前时间的方式就是</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前时间 = T1 + TSC * 0.5  //时间的精度为1ns</span><br></pre></td></tr></table></figure>
 <p>除了TSC, Linux还有其他方式维护时间，但由于目前主流服务器上都是TSC,所以其他方式的不详述<br>如何查看当前服务器支持的时间源</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cat /sys/devices/system/clocksource/clocksource0/available_clocksource</span><br><span class="line">tsc hpet acpi_pm</span><br></pre></td></tr></table></figure>
