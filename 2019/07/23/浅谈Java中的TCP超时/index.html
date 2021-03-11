@@ -1,37 +1,801 @@
-{% extends '_layout.swig' %}
-{% import '_macro/post.swig' as post_template %}
-{% import '_macro/sidebar.swig' as sidebar_template %}
+<!DOCTYPE html>
 
 
-{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
 
-{% block page_class %}page-post-detail{% endblock %}
+  
 
 
-{% block content %}
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+  
+  
+    
+    
+  <script src="/lib/pace/pace.min.js?v=1.0.2"></script>
+  <link href="/lib/pace/pace-theme-minimal.min.css?v=1.0.2" rel="stylesheet">
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Hexo, NexT">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="背景在远程调用的世界里，Timeout的情况非常常见，几乎每段时间就会听到几个同事关于Timeout各种情况的讨论，偶尔的会出现不同开发语言间的同事的讨论，例如read timeout, 语言的隔阂使得大家讨论的都不知道是否是同一回事。 对于Java，各种远程调用，http,hessian,dubbo什么的，抛个timeout异常也是常见的事情，timeout是什么，一般追追源码，追到最后发现是个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈Java中的TCP超时">
+<meta property="og:url" content="http://yoursite.com/2019/07/23/浅谈Java中的TCP超时/index.html">
+<meta property="og:site_name" content="程序员，川流不息">
+<meta property="og:description" content="背景在远程调用的世界里，Timeout的情况非常常见，几乎每段时间就会听到几个同事关于Timeout各种情况的讨论，偶尔的会出现不同开发语言间的同事的讨论，例如read timeout, 语言的隔阂使得大家讨论的都不知道是否是同一回事。 对于Java，各种远程调用，http,hessian,dubbo什么的，抛个timeout异常也是常见的事情，timeout是什么，一般追追源码，追到最后发现是个">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://www.plantuml.com/plantuml/svg/umhEJyvEBL7GjLE0iAmKalFpybAJIpHACdDJyqjBDBbGbHH3k9wv1JbmjLne4Y2rZad59KM9oIK1EOcPUTZqu52WW4zpCPZfJC04e04OjgBerCXBBCaiItqsRUUppLCr0G00">
+<meta property="og:image" content="http://www.plantuml.com/plantuml/svg/bO_12e9048Rl-nJJHUfGU9OI8lPWH0Xhvq6s4RR6NS4rwktJagWyb9TX6FxvFdwHScwiSlfCFYahNcY0UGo3QmJR_9BZgHkMF7u5i7wi6sSjQI-6q9R9nZPNrEngwdXxcM6VdtfJaciyB5SGpiH7iFjKjzfJYUiqYK2FLAIE-SMF8OGW05FO8nLmK1ALtCbD1Z-aLGlvswY8tplrpibewPCZxW00">
+<meta property="og:image" content="http://www.plantuml.com/plantuml/svg/TK_D2e904Bxt57CqgEYyXq38G30JrxjiwqHBkwxfR1JqyDaMz6UNOVZuVhcL1wIuRXnnQb4Oc2w0VuCC-bi5f0nQH-CH7rA5suvQ8IdJGjLFXcaq0o6FJhMuMWxhVi2PP90AKYU4DTBULj1vIjvtc0UxQWB_YypatLAhsfrBgMs7tYmgok8XUMtuuFWUbuxGb64MCsYirZufsoH9dCBLFr6UlsNV0000">
+<meta property="og:updated_time" content="2020-04-08T12:00:59.117Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="浅谈Java中的TCP超时">
+<meta name="twitter:description" content="背景在远程调用的世界里，Timeout的情况非常常见，几乎每段时间就会听到几个同事关于Timeout各种情况的讨论，偶尔的会出现不同开发语言间的同事的讨论，例如read timeout, 语言的隔阂使得大家讨论的都不知道是否是同一回事。 对于Java，各种远程调用，http,hessian,dubbo什么的，抛个timeout异常也是常见的事情，timeout是什么，一般追追源码，追到最后发现是个">
+<meta name="twitter:image" content="http://www.plantuml.com/plantuml/svg/umhEJyvEBL7GjLE0iAmKalFpybAJIpHACdDJyqjBDBbGbHH3k9wv1JbmjLne4Y2rZad59KM9oIK1EOcPUTZqu52WW4zpCPZfJC04e04OjgBerCXBBCaiItqsRUUppLCr0G00">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":true,"scrollpercent":true,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2019/07/23/浅谈Java中的TCP超时/">
+
+
+
+
+
+  <title>浅谈Java中的TCP超时 | 程序员，川流不息</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">程序员，川流不息</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
 
   <div id="posts" class="posts-expand">
-    {{ post_template.render(page) }}
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/07/23/浅谈Java中的TCP超时/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="HongShuwei">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="http://static.qqdaxia.com/rimg/hs/240_240_/t013e4fa6f38b1cece5.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="程序员，川流不息">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">浅谈Java中的TCP超时</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-07-23T10:48:44+08:00">
+                2019-07-23
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/07/23/浅谈Java中的TCP超时/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/07/23/浅谈Java中的TCP超时/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在远程调用的世界里，Timeout的情况非常常见，几乎每段时间就会听到几个同事关于Timeout各种情况的讨论，偶尔的会出现不同开发语言间的同事的讨论，例如read timeout, 语言的隔阂使得大家讨论的都不知道是否是同一回事。</p>
+<p>对于Java，各种远程调用，http,hessian,dubbo什么的，抛个timeout异常也是常见的事情，timeout是什么，一般追追源码，追到最后发现是个native方法，看着javadoc, 了解得不甚透彻。 所以本文尽量从Java到操作系统层面尝试说明常见的各种Timeout。</p>
+<h2 id="主要内容"><a href="#主要内容" class="headerlink" title="主要内容"></a>主要内容</h2><h3 id="现象"><a href="#现象" class="headerlink" title="现象"></a>现象</h3><p>对于Java开发来说，最常见的异常莫过于SocketTimeoutException，从异常日志，一般会有两种情况</p>
+<ul>
+<li>connect timed out</li>
+<li>read timed out</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">Caused by: java.net.SocketTimeoutException: connect timed out</span><br><span class="line">        at java.net.PlainSocketImpl.socketConnect(Native Method)</span><br><span class="line">        at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:<span class="number">345</span>)</span><br><span class="line">        at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:<span class="number">206</span>)</span><br><span class="line">        at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:<span class="number">188</span>)</span><br><span class="line">        at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:<span class="number">392</span>)</span><br><span class="line">        at java.net.Socket.connect(Socket.java:<span class="number">589</span>)</span><br><span class="line"></span><br><span class="line">java.net.SocketTimeoutException: Read timed out</span><br><span class="line">        at java.net.SocketInputStream.socketRead0(Native Method)</span><br><span class="line">        at java.net.SocketInputStream.socketRead(SocketInputStream.java:<span class="number">116</span>)</span><br><span class="line">        at java.net.SocketInputStream.read(SocketInputStream.java:<span class="number">170</span>)</span><br><span class="line">        at java.net.SocketInputStream.read(SocketInputStream.java:<span class="number">141</span>)</span><br></pre></td></tr></table></figure>
+<h3 id="原理-connect-timed-out"><a href="#原理-connect-timed-out" class="headerlink" title="原理 connect timed out"></a>原理 connect timed out</h3><p>“connect timed out”从字面上看就是连接的超时时间，那么超时时间是怎么控制的？</p>
+<h4 id="java-net-Socket"><a href="#java-net-Socket" class="headerlink" title="java.net.Socket"></a>java.net.Socket</h4><img src="http://www.plantuml.com/plantuml/svg/umhEJyvEBL7GjLE0iAmKalFpybAJIpHACdDJyqjBDBbGbHH3k9wv1JbmjLne4Y2rZad59KM9oIK1EOcPUTZqu52WW4zpCPZfJC04e04OjgBerCXBBCaiItqsRUUppLCr0G00">
+<p>从Sokcet的connect方法可以看出，timeout参数会一致往下传递，最后到了PlainSocketImpl.socketConnect的native方法， java native方法是否真的很神秘？也不神秘，让我们一起看下JVM底层的实现,以下是jdk8-openjdk的源码</p>
+<h4 id="PlainSocketImpl-c"><a href="#PlainSocketImpl-c" class="headerlink" title="PlainSocketImpl.c"></a>PlainSocketImpl.c</h4><img src="http://www.plantuml.com/plantuml/svg/bO_12e9048Rl-nJJHUfGU9OI8lPWH0Xhvq6s4RR6NS4rwktJagWyb9TX6FxvFdwHScwiSlfCFYahNcY0UGo3QmJR_9BZgHkMF7u5i7wi6sSjQI-6q9R9nZPNrEngwdXxcM6VdtfJaciyB5SGpiH7iFjKjzfJYUiqYK2FLAIE-SMF8OGW05FO8nLmK1ALtCbD1Z-aLGlvswY8tplrpibewPCZxW00">
+<p>以下只截取部分重要的源码， 从源码上看，没设置超时时间时，jvm采用 connect的传统阻塞式方式，反之,则采用select/poll非阻塞式的方式, 由于poll/select都是得采用轮询的方式，在客户端没有设置超时的时候，采用轮询会带来不必要的开销，所以没设置超时时采用connect的阻塞方式是合理的</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line">JNIEXPORT <span class="keyword">void</span> JNICALL</span><br><span class="line">Java_java_net_PlainSocketImpl_socketConnect(JNIEnv *env, jobject <span class="keyword">this</span>,</span><br><span class="line">                                            jobject iaObj, jint port,</span><br><span class="line">                                            jint timeout)</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (timeout &lt; <span class="number">0</span> ) &#123;</span><br><span class="line">   connect_rv = NET_Connect(fd, (struct sockaddr *)&amp;him, len);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line"> </span><br><span class="line">#ifndef USE_SELECT</span><br><span class="line">                &#123;</span><br><span class="line">                    struct pollfd pfd;</span><br><span class="line">                    pfd.fd = fd;</span><br><span class="line">                    pfd.events = POLLOUT;</span><br><span class="line"></span><br><span class="line">                    errno = <span class="number">0</span>;</span><br><span class="line">                    connect_rv = NET_Poll(&amp;pfd, <span class="number">1</span>, timeout);</span><br><span class="line">                &#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">                &#123;</span><br><span class="line">                    fd_set wr, ex;</span><br><span class="line">                    <span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">t</span>;</span></span><br><span class="line"></span><br><span class="line">                    t.tv_sec = timeout / <span class="number">1000</span>;</span><br><span class="line">                    t.tv_usec = (timeout % <span class="number">1000</span>) * <span class="number">1000</span>;</span><br><span class="line"></span><br><span class="line">                    FD_ZERO(&amp;wr);</span><br><span class="line">                    FD_SET(fd, &amp;wr);</span><br><span class="line">                    FD_ZERO(&amp;ex);</span><br><span class="line">                    FD_SET(fd, &amp;ex);</span><br><span class="line"></span><br><span class="line">                    errno = <span class="number">0</span>;</span><br><span class="line">                    connect_rv = NET_Select(fd+<span class="number">1</span>, <span class="number">0</span>, &amp;wr, &amp;ex, &amp;t);</span><br><span class="line">                &#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">            &#125; </span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (connect_rv == <span class="number">0</span>) &#123;</span><br><span class="line">                JNU_ThrowByName(env, JNU_JAVANETPKG <span class="string">"SocketTimeoutException"</span>,</span><br><span class="line">                            <span class="string">"connect timed out"</span>);</span><br><span class="line"></span><br><span class="line">                <span class="comment">/*</span></span><br><span class="line"><span class="comment">                 * Timeout out but connection may still be established.</span></span><br><span class="line"><span class="comment">                 * At the high level it should be closed immediately but</span></span><br><span class="line"><span class="comment">                 * just in case we make the socket blocking again and</span></span><br><span class="line"><span class="comment">                 * shutdown input &amp; output.</span></span><br><span class="line"><span class="comment">                 */</span></span><br><span class="line">                SET_BLOCKING(fd);</span><br><span class="line">                JVM_SocketShutdown(fd, <span class="number">2</span>);</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* has connection been established */</span></span><br><span class="line">            optlen = <span class="keyword">sizeof</span>(connect_rv);</span><br><span class="line">            <span class="keyword">if</span> (JVM_GetSockOpt(fd, SOL_SOCKET, SO_ERROR, (<span class="keyword">void</span>*)&amp;connect_rv,</span><br><span class="line">                               &amp;optlen) &lt;<span class="number">0</span>) &#123;</span><br><span class="line">                connect_rv = errno;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="原理-Read-timed-out"><a href="#原理-Read-timed-out" class="headerlink" title="原理 Read timed out"></a>原理 Read timed out</h3><p>从下面这个时序图看， read timedout的原理就是通过系统调用 poll, 传入对应的socket文件句柄，在timeout时间内没有数据返回</p>
+<img src="http://www.plantuml.com/plantuml/svg/TK_D2e904Bxt57CqgEYyXq38G30JrxjiwqHBkwxfR1JqyDaMz6UNOVZuVhcL1wIuRXnnQb4Oc2w0VuCC-bi5f0nQH-CH7rA5suvQ8IdJGjLFXcaq0o6FJhMuMWxhVi2PP90AKYU4DTBULj1vIjvtc0UxQWB_YypatLAhsfrBgMs7tYmgok8XUMtuuFWUbuxGb64MCsYirZufsoH9dCBLFr6UlsNV0000">
+<p>当调用NET_Timeout没返回任何数据的时候, 根据情况会抛出 SocketTimeoutException或者SokcetException, 这个SocketTimeoutException就是我们经常遇到的read timed out</p>
+<pre><code class="c"><span class="keyword">if</span> (timeout) {
+    nread = NET_Timeout(fd, timeout);
+    <span class="keyword">if</span> (nread &lt;= <span class="number">0</span>) {
+        <span class="keyword">if</span> (nread == <span class="number">0</span>) {
+            JNU_ThrowByName(env, JNU_JAVANETPKG <span class="string">"SocketTimeoutException"</span>,
+                        <span class="string">"Read timed out"</span>);
+        } <span class="keyword">else</span> <span class="keyword">if</span> (nread == JVM_IO_ERR) {
+            <span class="keyword">if</span> (errno == EBADF) {
+                 JNU_ThrowByName(env, JNU_JAVANETPKG <span class="string">"SocketException"</span>, <span class="string">"Socket closed"</span>);
+             } <span class="keyword">else</span> {
+                 NET_ThrowByNameWithLastError(env, JNU_JAVANETPKG <span class="string">"SocketException"</span>,
+                                              <span class="string">"select/poll failed"</span>);
+             }
+        } <span class="keyword">else</span> <span class="keyword">if</span> (nread == JVM_IO_INTR) {
+            JNU_ThrowByName(env, JNU_JAVAIOPKG <span class="string">"InterruptedIOException"</span>,
+                        <span class="string">"Operation interrupted"</span>);
+        }
+        <span class="keyword">if</span> (bufP != BUF) {
+            <span class="built_in">free</span>(bufP);
+        }
+        <span class="keyword">return</span> <span class="number">-1</span>;
+    }
+}
+</code></pre>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
+<li>“connect timed out” 是在指定时间内TCP连接未创建成功时jdk抛出的异常</li>
+<li>“Read timed out”是在调用socketread后，指定时间内未收到响应时 jdk抛出的异常， 假如一个http响应10k, 每次socket read 4k, 那么就需要发起3次read的请求，假如timeout设置3秒，那么就允许每次read都等待3秒，最差的情况就是大概6秒读完数据，当然这得是极端的网络情况， 所以大部分情况下都是客户端发起请求后，在指定时间内收到的服务器的回包响应。<br>## </li>
+</ol>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/07/06/浅谈web中的gzip压缩/" rel="next" title="浅谈web中的gzip压缩">
+                <i class="fa fa-chevron-left"></i> 浅谈web中的gzip压缩
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/08/02/Tomcat对于http-keepalive的控制/" rel="prev" title="Tomcat对于http keepalive的控制">
+                Tomcat对于http keepalive的控制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
 
     <div class="post-spread">
-      {% if theme.jiathis %}
-        {% include '_partials/share/jiathis.swig' %}
-      {% elseif theme.baidushare %}
-        {% include '_partials/share/baidushare.swig' %}
-      {% elseif theme.add_this_id %}
-        {% include '_partials/share/add-this.swig' %}
-      {% elseif theme.duoshuo_shortname and theme.duoshuo_share %}
-        {% include '_partials/share/duoshuo_share.swig' %}
-      {% endif %}
+      
     </div>
   </div>
 
-{% endblock %}
 
-{% block sidebar %}
-  {{ sidebar_template.render(true) }}
-{% endblock %}
+          </div>
+          
 
-{% block script_extra %}
-  {% include '_scripts/pages/post-details.swig' %}
-{% endblock %}
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="disqus_thread">
+        <noscript>
+          Please enable JavaScript to view the
+          <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a>
+        </noscript>
+      </div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="http://static.qqdaxia.com/rimg/hs/240_240_/t013e4fa6f38b1cece5.jpg" alt="HongShuwei">
+            
+              <p class="site-author-name" itemprop="name">HongShuwei</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">9</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:hongshuwei@gmail.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#背景"><span class="nav-number">1.</span> <span class="nav-text">背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#主要内容"><span class="nav-number">2.</span> <span class="nav-text">主要内容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#现象"><span class="nav-number">2.1.</span> <span class="nav-text">现象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#原理-connect-timed-out"><span class="nav-number">2.2.</span> <span class="nav-text">原理 connect timed out</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#java-net-Socket"><span class="nav-number">2.2.1.</span> <span class="nav-text">java.net.Socket</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#PlainSocketImpl-c"><span class="nav-number">2.2.2.</span> <span class="nav-text">PlainSocketImpl.c</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#原理-Read-timed-out"><span class="nav-number">2.3.</span> <span class="nav-text">原理 Read timed out</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+        <div class="back-to-top">
+          <i class="fa fa-arrow-up"></i>
+          
+            <span id="scrollpercent"><span>0</span>%</span>
+          
+        </div>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">HongShuwei</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+    
+      <script id="dsq-count-scr" src="https://hoswey.disqus.com/count.js" async></script>
+    
+
+    
+      <script type="text/javascript">
+        var disqus_config = function () {
+          this.page.url = 'http://yoursite.com/2019/07/23/浅谈Java中的TCP超时/';
+          this.page.identifier = '2019/07/23/浅谈Java中的TCP超时/';
+          this.page.title = '浅谈Java中的TCP超时';
+        };
+        var d = document, s = d.createElement('script');
+        s.src = 'https://hoswey.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', '' + +new Date());
+        (d.head || d.body).appendChild(s);
+      </script>
+    
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
