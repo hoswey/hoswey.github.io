@@ -93,7 +93,7 @@
 <meta property="og:site_name" content="程序员，川流不息">
 <meta property="og:description" content="背景这几天和盛哥聊到了系统调用的开销，有些是io,有些是内存，突然提到了尽管像获取时间这种调用，有些对性能要求极高的系统也会做针对性优化。连”获取时间“都要优化，nginx不就是这么处理么？为什么要这样处理?时间这个基础性的信息底层到底是怎样呢，而高级语言Java/C这些获取时间的方式又是怎么和底层交互的？这个问题激起了我极大的兴趣，希望能通过对“时间”的技术细节做层梳理和探索，加深对操作系统以及">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2020-09-05T09:03:15.214Z">
+<meta property="og:updated_time" content="2021-05-17T12:40:29.125Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Linux如何获取时间">
 <meta name="twitter:description" content="背景这几天和盛哥聊到了系统调用的开销，有些是io,有些是内存，突然提到了尽管像获取时间这种调用，有些对性能要求极高的系统也会做针对性优化。连”获取时间“都要优化，nginx不就是这么处理么？为什么要这样处理?时间这个基础性的信息底层到底是怎样呢，而高级语言Java/C这些获取时间的方式又是怎么和底层交互的？这个问题激起了我极大的兴趣，希望能通过对“时间”的技术细节做层梳理和探索，加深对操作系统以及">
@@ -504,6 +504,7 @@
 <li><a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux_for_real_time/7/html/reference_guide/sect-posix_clocks#CLOCK_MONOTONIC_COARSE_and_CLOCK_REALTIME_COARSE" target="_blank" rel="noopener">select posix clocks</a></li>
 <li><a href="https://stackoverflow.com/questions/6498972/faster-equivalent-of-gettimeofday" target="_blank" rel="noopener">fast equivalent of gettimeofday</a></li>
 <li><a href="https://www.chromium.org/chromium-os/how-tos-and-troubleshooting/tsc-resynchronization" target="_blank" rel="noopener">HPET vs TSC</a></li>
+<li><a href="http://pzemtsov.github.io/2017/07/23/the-slow-currenttimemillis.html" target="_blank" rel="noopener">the-slow-currenttimemillis</a></li>
 </ol>
 
       
